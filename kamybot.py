@@ -1,80 +1,65 @@
+import os
+import re
 import requests
 from typing import Final
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-
-import os
 from dotenv import load_dotenv
-# ---------------- CONFIG ----------------
 
-load_dotenv() 
+# ---------------------- ENV ----------------------
+load_dotenv()
 
-TOKEN: str = os.getenv("TOKEN")
-BOT_USERNAME: str = os.getenv("BOT_USERNAME")
-OPENWEATHER_API_KEY: str = os.getenv("OPENWEATHER_API_KEY")
-GEOCODE_URL: str = os.getenv("GEOCODE_URL")
+TOKEN: Final = os.getenv("BOT_TOKEN")
+BOT_USERNAME: Final = os.getenv("BOT_USERNAME")
+OPENWEATHER_API_KEY: Final = os.getenv("OPENWEATHER_API_KEY")
+GEOCODE_URL: Final = "https://nominatim.openstreetmap.org/search"
 
-
-# ---------------- STATE ----------------
-user_state = {}
-
-# ---------------- COMMANDS ----------------
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("درود؛ در خدمتم")
-
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "در این مرحله صرفا میتونم بگم:\n"
-        "چپ هرگز نفهمید 👀\n"
-        "به درود و چطوری هم جواب میدم.\n"
-        "فیچر جدید: آب و هوا 🌤"
-    )
-
-async def chap_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("چپ هرگز نفهمید!")
-
-async def weather_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
-    user_state[user_id] = "waiting_for_city"
-    await update.message.reply_text("اسم شهر مورد نظر رو بگو 🏙")
-
-# ---------------- WEATHER FUNCS ----------------
-def get_city_coordinates(city_name: str):
+# ---------------------- WEATHER ----------------------
+async def get_city_coordinates(city: str):
     try:
-        params = {
-            "q": city_name,
-            "format": "json",
-            "accept-language": "fa"
-        }
-        headers = {
-            "User-Agent": "TelegramWeatherBot/1.0 (kamstein@gmail.com)"
-        }
-        response = requests.get(GEOCODE_URL, params=params, headers=headers, timeout=10)
-
-        if response.status_code != 200:
-            print("Geocode API Error:", response.status_code, response.text[:100])
-            return None
-
+        params = {"q": city, "format": "json", "limit": 1}
+        response = requests.get(GEOCODE_URL, params=params, timeout=10, headers={"User-Agent": "kamybot"})
         data = response.json()
         if not data:
-            return None
-        return float(data[0]["lat"]), float(data[0]["lon"]), data[0]["display_name"]
-
+            return None, None
+        return data[0]["lat"], data[0]["lon"]
     except Exception as e:
-        print("Error in get_city_coordinates:", e)
-        return None
+        print(f"Error in get_city_coordinates: {e}")
+        return None, None
 
-def get_weather(lat, lon):
+async def get_weather(city: str) -> str:
+    lat, lon = await get_city_coordinates(city)
+    if not lat or not lon:
+        return f"شهر {city} پیدا نشد ❌"
+
     try:
         url = f"http://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OPENWEATHER_API_KEY}&units=metric&lang=fa"
         response = requests.get(url, timeout=10)
-        return response.json()
+        data = response.json()
+
+        if data.get("cod") != 200:
+            return f"خطا در دریافت اطلاعات آب‌وهوا برای {city} ❌"
+
+        temp = data["main"]["temp"]
+        desc = data["weather"][0]["description"]
+        return f"آب و هوای {city}:\n🌡 دما: {temp}°C\n🌥 وضعیت: {desc}"
     except Exception as e:
-        print("Error in get_weather:", e)
-        return None
-# ---------------- RESPONSES ----------------
-def handle_response(text: str, user_id: int) -> str:
-    processed: str = text.lower()
+        print(f"Error in get_weather: {e}")
+        return "خطایی در دریافت آب‌وهوا رخ داد ❌"
+
+# ---------------------- RESPONSES ----------------------
+async def handle_response(text: str) -> str:
+    processed: str = text.lower().replace("اب", "آب")  # فرق "اب" و "آب"
+
+    # حالت: "آب و هوای {شهر}"
+    match = re.search(r"آب و هوای\s+([\u0600-\u06FFa-zA-Z\s]+)", processed)
+    if match:
+        city = match.group(1).strip()
+        return await get_weather(city)
+
+    # حالت: فقط آب و هوا
+    if "آب و هوا" in processed:
+        return "بگو اسم شهری که میخوای 🌍"
 
     if "درود" in processed:
         return "درود عمویی"
@@ -84,75 +69,52 @@ def handle_response(text: str, user_id: int) -> str:
         return "سلام رو نمیفهمم باید بگی درود"
     if "چپ" in processed:
         return "چپ هرگز نفهمید!"
-    if "اب و هوا" in processed or "آب و هوا" in processed:
-        user_state[user_id] = "waiting_for_city"
-        return "اسم شهر مورد نظر رو بگو 🏙"
+    
     return "متاسفانه نمیفهمم چی میگی. همونطور که چپ هرگز نفهمید."
-# ---------------- MESSAGES ----------------
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message_type = update.message.chat.type
-    text: str = update.message.text
-    user_id = update.message.from_user.id
 
-    print(f'user({update.message.chat.id}) in {message_type}: "{text}"')
+# ---------------------- COMMANDS ----------------------
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("سلام! من بات هوشمندم 🤖")
 
-    # --- حالت انتظار شهر ---
-    if user_id in user_state and user_state[user_id] == "waiting_for_city":
-        coords = get_city_coordinates(text)
-        if coords:
-            lat, lon, display_name = coords
-            weather_data = get_weather(lat, lon)
-            if weather_data and "main" in weather_data:
-                temp = weather_data["main"]["temp"]
-                desc = weather_data["weather"][0]["description"]
-                await update.message.reply_text(
-                    f"آب و هوای {display_name}:\n{desc}, دما: {temp}°C 🌡"
-                )
-            else:
-                await update.message.reply_text("نتونستم وضعیت هوا رو بگیرم 😞")
-        else:
-            await update.message.reply_text("اسم شهر درست نبود یا پیدا نشد 🚫")
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("کافیه بگی: آب و هوای تهران 🌍")
 
-        user_state.pop(user_id, None)
-        return
-
-    # --- گروه و سوپرگروه ---
-    if message_type in ["group", "supergroup"]:
-        if BOT_USERNAME in text:
-            new_text: str = text.replace(BOT_USERNAME, "").strip()
-            response: str = handle_response(new_text, user_id)
-        elif "چپ" in text:
-            response: str = handle_response("چپ هرگز نفهمید", user_id)
-        else:
-            return
+async def weather_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.args:
+        city = " ".join(context.args)
+        reply = await get_weather(city)
     else:
-        response: str = handle_response(text, user_id)
+        reply = "بگو: /weather [اسم شهر]"
+    await update.message.reply_text(reply)
 
-    print("bot:", response)
+# ---------------------- MESSAGES ----------------------
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    print(f"user({update.message.from_user.id}) in {update.message.chat.type}: \"{text}\"")
+
+    response = await handle_response(text)
     await update.message.reply_text(response)
 
+# ---------------------- ERRORS ----------------------
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
+    print(f"Update {update} caused error {context.error}")
 
-# ---------------- ERRORS ----------------
-async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print(f"Update {update} caused error : {context.error}")
-
-# ---------------- MAIN ----------------
+# ---------------------- MAIN ----------------------
 if __name__ == "__main__":
     print("bot is starting...")
+
     app = Application.builder().token(TOKEN).build()
 
     # Commands
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("help", help_command))
-    app.add_handler(CommandHandler("chap", chap_command))
     app.add_handler(CommandHandler("weather", weather_command))
 
     # Messages
-    app.add_handler(MessageHandler(filters.TEXT, handle_message))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     # Errors
-    app.add_error_handler(error)
+    app.add_error_handler(error_handler)
 
-    # Polling
     print("polling...")
     app.run_polling(poll_interval=3)
