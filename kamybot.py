@@ -3,11 +3,17 @@ from typing import Final
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
+import os
+from dotenv import load_dotenv
 # ---------------- CONFIG ----------------
-TOKEN: Final = "YOUR_TELEGRAM_BOT_TOKEN"
-BOT_USERNAME: Final = "@cumsteinbot"
-OPENWEATHER_API_KEY: Final = "YOUR_OPENWEATHER_API_KEY"
-GEOCODE_URL = "https://nominatim.openstreetmap.org/search"
+
+load_dotenv() 
+
+TOKEN: str = os.getenv("TOKEN")
+BOT_USERNAME: str = os.getenv("BOT_USERNAME")
+OPENWEATHER_API_KEY: str = os.getenv("OPENWEATHER_API_KEY")
+GEOCODE_URL: str = os.getenv("GEOCODE_URL")
+
 
 # ---------------- STATE ----------------
 user_state = {}
