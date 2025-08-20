@@ -4,9 +4,9 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
 # ---------------- CONFIG ----------------
-TOKEN: Final = "8484374008:AAEsLWQjjx5GSoGs-myLtMNJTHqXtsV0wVI"
+TOKEN: Final = "YOUR_TELEGRAM_BOT_TOKEN"
 BOT_USERNAME: Final = "@cumsteinbot"
-OPENWEATHER_API_KEY: Final = "f539dc11a658e6e09da2657a4c1acf0d"
+OPENWEATHER_API_KEY: Final = "YOUR_OPENWEATHER_API_KEY"
 GEOCODE_URL = "https://nominatim.openstreetmap.org/search"
 
 # ---------------- STATE ----------------
@@ -66,9 +66,8 @@ def get_weather(lat, lon):
     except Exception as e:
         print("Error in get_weather:", e)
         return None
-
 # ---------------- RESPONSES ----------------
-def handle_response(text: str) -> str:
+def handle_response(text: str, user_id: int) -> str:
     processed: str = text.lower()
 
     if "درود" in processed:
@@ -79,10 +78,10 @@ def handle_response(text: str) -> str:
         return "سلام رو نمیفهمم باید بگی درود"
     if "چپ" in processed:
         return "چپ هرگز نفهمید!"
-    if "آب و هوا" in processed:
-        return "بگو اسم شهری که میخوای 🌍"
+    if "اب و هوا" in processed or "آب و هوا" in processed:
+        user_state[user_id] = "waiting_for_city"
+        return "اسم شهر مورد نظر رو بگو 🏙"
     return "متاسفانه نمیفهمم چی میگی. همونطور که چپ هرگز نفهمید."
-
 # ---------------- MESSAGES ----------------
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message_type = update.message.chat.type
@@ -115,16 +114,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if message_type in ["group", "supergroup"]:
         if BOT_USERNAME in text:
             new_text: str = text.replace(BOT_USERNAME, "").strip()
-            response: str = handle_response(new_text)
+            response: str = handle_response(new_text, user_id)
         elif "چپ" in text:
-            response: str = handle_response("چپ هرگز نفهمید")
+            response: str = handle_response("چپ هرگز نفهمید", user_id)
         else:
             return
     else:
-        response: str = handle_response(text)
+        response: str = handle_response(text, user_id)
 
     print("bot:", response)
     await update.message.reply_text(response)
+
 
 # ---------------- ERRORS ----------------
 async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
