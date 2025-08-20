@@ -35,12 +35,25 @@ async def weather_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ---------------- WEATHER FUNCS ----------------
 def get_city_coordinates(city_name: str):
     try:
-        params = {"q": city_name, "format": "json", "accept_language": "fa"}
-        response = requests.get(GEOCODE_URL, params=params, timeout=10)
+        params = {
+            "q": city_name,
+            "format": "json",
+            "accept-language": "fa"
+        }
+        headers = {
+            "User-Agent": "TelegramWeatherBot/1.0 (kamstein@gmail.com)"
+        }
+        response = requests.get(GEOCODE_URL, params=params, headers=headers, timeout=10)
+
+        if response.status_code != 200:
+            print("Geocode API Error:", response.status_code, response.text[:100])
+            return None
+
         data = response.json()
         if not data:
             return None
         return float(data[0]["lat"]), float(data[0]["lon"]), data[0]["display_name"]
+
     except Exception as e:
         print("Error in get_city_coordinates:", e)
         return None
