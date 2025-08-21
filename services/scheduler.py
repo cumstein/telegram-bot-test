@@ -1,4 +1,4 @@
-from datetime import time
+from datetime import datetime, timedelta, time
 from telegram.ext import ContextTypes
 from services.weather import fetch_daily_forecast
 from services.hafez import get_random_hafez
@@ -20,9 +20,11 @@ async def morning_message(context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=chat_id, text=msg)
 
 def setup_jobs(app):
+    # برای تست: ۲ دقیقه بعد از اجرای بات
+    now = datetime.utcnow() + timedelta(minutes=2)
     app.job_queue.run_daily(
         morning_message,
-        time=time(6, 30),
+        time=time(now.hour, now.minute),
         name="morning",
         data={'CHAT_ID': CHAT_ID}
     )
