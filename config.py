@@ -8,6 +8,7 @@ TOKEN: Final = os.getenv("TOKEN")
 BOT_USERNAME: Final = os.getenv("BOT_USERNAME")
 OPENWEATHER_API_KEY: Final = os.getenv("OPENWEATHER_API_KEY")
 GEOCODE_URL: Final = "https://nominatim.openstreetmap.org/search"
+CHAT_ID: Final = os.getenv("CHAT_ID")
 
 # حافظه موقت (کاربرانی که بات ازشون اسم شهر خواسته)
 pending_city_request = {}
