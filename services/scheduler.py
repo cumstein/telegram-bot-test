@@ -19,9 +19,10 @@ async def morning_message(context: ContextTypes.DEFAULT_TYPE):
     chat_id = context.job.data['CHAT_ID']
     await context.bot.send_message(chat_id=chat_id, text=msg)
 
+from datetime import datetime, timedelta, time, timezone
+
 def setup_jobs(app):
-    # برای تست: ۲ دقیقه بعد از اجرای بات
-    now = datetime.utcnow() + timedelta(minutes=2)
+    now = datetime.now(timezone.utc) + timedelta(minutes=2)
     app.job_queue.run_daily(
         morning_message,
         time=time(now.hour, now.minute),

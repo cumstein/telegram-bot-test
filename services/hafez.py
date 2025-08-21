@@ -4,7 +4,6 @@ import random
 def get_random_hafez():
     try:
         poem = omen()
-        print("OMEN DATA:", poem)  # برای دیباگ
         lines = poem.get("poem", [])
         if not lines or len(lines) < 2:
             print("Poem is empty or too short!")
@@ -14,7 +13,6 @@ def get_random_hafez():
         omens = []
         for name in ["کامی", "میلاد", "مهدی"]:
             omen_data = omen()
-            print(f"{name} OMEN:", omen_data)  # برای دیباگ
             interpretation = omen_data.get("interpretation", "")
             omens.append(f"فال {name}:\n{interpretation}")
         omens_text = "\n\n".join(omens)
