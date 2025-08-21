@@ -12,6 +12,24 @@ def fetch_coordinates(city: str):
         return data[0]["lat"], data[0]["lon"]
     except:
         return None, None
+    
+def fetch_daily_forecast(city: str) -> str:
+    lat, lon = fetch_coordinates(city)
+    if not lat:
+        return f"شهر {city} پیدا نشد ❌"
+
+    url = f"https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lon}&exclude=minutely,hourly,alerts&units=metric&lang=fa&appid={OPENWEATHER_API_KEY}"
+    r = requests.get(url, timeout=10)
+    data = r.json()
+    daily = data.get("daily", [])
+    if not daily:
+        return "مشکل در گرفتن پیش‌بینی"
+
+    today = daily[0]
+    desc = today["weather"][0]["description"]
+    temp_min = today["temp"]["min"]
+    temp_max = today["temp"]["max"]
+    return f"{city}:\n  وضعیت: {desc}\n  بیشینه: {temp_max}°C، کمینه: {temp_min}°C"
 
 def fetch_weather(city: str) -> str:
     """ گرفتن وضعیت آب‌وهوا از OpenWeather """
