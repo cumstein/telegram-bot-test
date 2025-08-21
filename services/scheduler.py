@@ -14,12 +14,13 @@ async def morning_message(context: ContextTypes.DEFAULT_TYPE):
     poem = get_random_hafez()
     if poem:
         msg += f"✨ حافظ: {poem}\n"
-    await context.bot.send_message(CHAT_ID=context.job.CHAT_ID, text=msg)
+    chat_id = context.job.kwargs['CHAT_ID']
+    await context.bot.send_message(chat_id=chat_id, text=msg)
 
-def setup_jobs(app, target_CHAT_ID):
+def setup_jobs(app, CHAT_ID):
     app.job_queue.run_daily(
         morning_message,
         time=time(6, 30),  # حدود 9 صبح تهران (UTC)
         name="morning",
-        kwargs={'CHAT_ID': target_CHAT_ID}
+        kwargs={'CHAT_ID': CHAT_ID}
     )
