@@ -14,6 +14,9 @@ BOT_USERNAME: Final = os.getenv("BOT_USERNAME")
 OPENWEATHER_API_KEY: Final = os.getenv("OPENWEATHER_API_KEY")
 GEOCODE_URL: Final = "https://nominatim.openstreetmap.org/search"
 
+# حالت ریپلای (حافظه موقت کاربر → انتظار شهر)
+pending_city_request = {}
+
 # ---------------------- WEATHER ----------------------
 async def get_city_coordinates(city: str):
     try:
@@ -48,8 +51,13 @@ async def get_weather(city: str) -> str:
         return "خطایی در دریافت آب‌وهوا رخ داد ❌"
 
 # ---------------------- RESPONSES ----------------------
-async def handle_response(text: str) -> str:
+async def handle_response(user_id: int, text: str) -> str:
     processed: str = text.lower().replace("اب", "آب")  # فرق "اب" و "آب"
+
+    # حالت ریپلای: اگر قبلاً پرسیده "چه شهری؟"
+    if pending_city_request.get(user_id):
+        pending_city_request.pop(user_id)  # حافظه پاک شه بعد جواب
+        return await get_weather(text.strip())
 
     # حالت: "آب و هوای {شهر}"
     match = re.search(r"آب و هوای\s+([\u0600-\u06FFa-zA-Z\s]+)", processed)
@@ -59,6 +67,7 @@ async def handle_response(text: str) -> str:
 
     # حالت: فقط آب و هوا
     if "آب و هوا" in processed:
+        pending_city_request[user_id] = True
         return "بگو اسم شهری که میخوای 🌍"
 
     if "درود" in processed:
@@ -74,10 +83,10 @@ async def handle_response(text: str) -> str:
 
 # ---------------------- COMMANDS ----------------------
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("سلام! من بات هوشمندم 🤖")
+    await update.message.reply_text("سلام! من بات غیرهوشمندم 🤖")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("کافیه بگی: آب و هوای تهران 🌍")
+    await update.message.reply_text("کافیه بگی: آب و هوای تهران 🌍 یا فقط بگو آب و هوا تا راهنمایی‌ت کنم.")
 
 async def weather_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
@@ -89,10 +98,27 @@ async def weather_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ---------------------- MESSAGES ----------------------
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.from_user.id
+    chat_type = update.message.chat.type
     text = update.message.text
-    print(f"user({update.message.from_user.id}) in {update.message.chat.type}: \"{text}\"")
+    print(f"user({user_id}) in {chat_type}: \"{text}\"")
 
-    response = await handle_response(text)
+    # ---------------- حالت گروه ----------------
+    if chat_type in ["group", "supergroup"]:
+        mentioned = BOT_USERNAME.lower() in text.lower()
+        is_reply_to_bot = (
+            update.message.reply_to_message
+            and update.message.reply_to_message.from_user.username == BOT_USERNAME
+        )
+
+        # فقط وقتی منشن یا ریپلای شده جواب بده
+        if not (mentioned or is_reply_to_bot):
+            # استثنا: اگر "چپ" یا "آب و هوای فلان‌جا" تو متن باشه → جواب بده
+            if "چپ" not in text and "آب و هوا" not in text:
+                return
+
+    # ---------------- پردازش جواب ----------------
+    response = await handle_response(user_id, text)
     await update.message.reply_text(response)
 
 # ---------------------- ERRORS ----------------------
