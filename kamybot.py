@@ -118,7 +118,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif "چپ" in text:
         await update.message.reply_text("چپ هرگز نفهمید!")
     else:
-        return
+        await update.message.reply_text("متاسفانه نمیفهمم چی میگی. همونطور که چپ هرگز نفهمید!")
 
 # ---------------------- COMMANDS ----------------------
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
