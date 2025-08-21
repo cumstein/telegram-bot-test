@@ -51,11 +51,14 @@ def normalize_text(text: str) -> str:
     return text.lower().replace("اب", "آب")
 
 def extract_city_from_text(text: str) -> str | None:
-    """ از متن کاربر دنبال «آب و هوای فلان‌جا» بگرد """
-    match = re.search(r"آب و هوای\s+([\u0600-\u06FFa-zA-Z\s]+)", text)
+    """ گرفتن اسم شهر از جمله «آب و هوای فلان جا» یا «اب و هوای فلان جا» """
+    text = normalize_text(text)
+    # گرفتن "آب و هوای تهران" یا "آب و هوا تهران"
+    match = re.search(r"آب و هوا(?:ی)?\s+([\u0600-\u06FFa-zA-Z\s]+)", text)
     if match:
         return match.group(1).strip()
     return None
+
 
 def should_respond_in_group(update: Update) -> bool:
     """ در گروه فقط اگر منشن یا ریپلای باشه جواب بده (به جز کیورد خاص) """
@@ -69,9 +72,10 @@ def should_respond_in_group(update: Update) -> bool:
     # اگر منشن یا ریپلای → جواب بده
     if mentioned or is_reply_to_bot:
         return True
-
-    # استثنا: اگر «چپ» یا «آب و هوای فلان‌جا» تو متن باشه → جواب بده
-    if "چپ" in text or extract_city_from_text(text):
+ # استثنا: اگر «چپ» یا هر نوع «آب و هوای {شهر}» → جواب بده
+    if "چپ" in normalize_text(text):
+        return True
+    if extract_city_from_text(text):
         return True
 
     # در غیر این صورت → هیچی نگو
