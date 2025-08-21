@@ -14,27 +14,26 @@ def fetch_coordinates(city: str):
         return None, None
     
 def fetch_daily_forecast(city: str) -> str:
+    """ گرفتن وضعیت آب‌وهوا فقط برای امروز (با API رایگان) """
     lat, lon = fetch_coordinates(city)
-    if not lat:
+    if not lat or not lon:
         return f"شهر {city} پیدا نشد ❌"
 
-    url = f"https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lon}&exclude=minutely,hourly,alerts&units=metric&lang=fa&appid={OPENWEATHER_API_KEY}"
+    url = f"http://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OPENWEATHER_API_KEY}&units=metric&lang=fa"
     try:
         r = requests.get(url, timeout=10)
         data = r.json()
     except Exception as e:
         print(f"Error fetching weather: {e}")
         return "مشکل در گرفتن پیش‌بینی"
-    print(data)
-    daily = data.get("daily", [])
-    if not daily:
-        return "مشکل در گرفتن پیش‌بینی"
+    if data.get("cod") != 200:
+        return f"خطا در دریافت اطلاعات آب‌وهوا برای {city} ❌"
 
-    today = daily[0]
-    desc = today["weather"][0]["description"]
-    temp_min = today["temp"]["min"]
-    temp_max = today["temp"]["max"]
-    return f"{city}:\n  وضعیت: {desc}\n  بیشینه: {temp_max}°C، کمینه: {temp_min}°C"
+    temp = data["main"]["temp"]
+    temp_min = data["main"].get("temp_min", "-")
+    temp_max = data["main"].get("temp_max", "-")
+    desc = data["weather"][0]["description"]
+    return f"{city}:\n  وضعیت: {desc}\n  دما: {temp}°C\n  بیشینه: {temp_max}°C، کمینه: {temp_min}°C"
 
 def fetch_weather(city: str) -> str:
     """ گرفتن وضعیت آب‌وهوا از OpenWeather """
