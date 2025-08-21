@@ -14,7 +14,7 @@ async def morning_message(context: ContextTypes.DEFAULT_TYPE):
     poem = get_random_hafez()
     if poem:
         msg += f"✨ حافظ: {poem}\n"
-    chat_id = context.job.kwargs['CHAT_ID']
+    chat_id = context.job.data['CHAT_ID']
     await context.bot.send_message(chat_id=chat_id, text=msg)
 
 def setup_jobs(app):
@@ -22,5 +22,5 @@ def setup_jobs(app):
         morning_message,
         time=time(6, 30),
         name="morning",
-        kwargs={'CHAT_ID': CHAT_ID}
+        data={'CHAT_ID': CHAT_ID}
     )
