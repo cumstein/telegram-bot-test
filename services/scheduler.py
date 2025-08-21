@@ -11,7 +11,7 @@ async def morning_message(context: ContextTypes.DEFAULT_TYPE):
         msg += fetch_daily_forecast(c) + "\n\n"
     poem = get_random_hafez()
     if poem:
-        msg += f"✨ حافظ: {poem}\n"
+       msg += f"✨ حافظ:\n{poem}\n"
     else:
         msg += "✨ حافظ: نتوانستم شعر حافظ را پیدا کنم.\n"
     chat_id = context.job.data['CHAT_ID']
