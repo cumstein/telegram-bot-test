@@ -23,4 +23,8 @@ async def weather_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         pending_city_request[user_id] = True
         await update.message.reply_text("کدوم شهر؟ 🌍")
 async def test_daily_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await morning_message(context.bot)
+    # Create a dummy job object with data for testing
+    class DummyJob:
+        data = {'CHAT_ID': update.effective_chat.id}
+    context.job = DummyJob()
+    await morning_message(context)
