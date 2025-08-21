@@ -6,7 +6,8 @@ def get_random_hafez():
     try:
         r = requests.get(HAFEZ_API, timeout=5)
         data = r.json()
-        # فرض بر اینکه پاسخ یه شی با کلید "text" باشه
+        print("Hafez API response:", data)  # لاگ برای دیباگ
         return data.get("text", "")
-    except:
+    except Exception as e:
+        print("Hafez API error:", e)
         return ""

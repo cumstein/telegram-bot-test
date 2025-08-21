@@ -14,6 +14,8 @@ async def morning_message(context: ContextTypes.DEFAULT_TYPE):
     poem = get_random_hafez()
     if poem:
         msg += f"✨ حافظ: {poem}\n"
+    else:
+        msg += "✨ حافظ: نتوانستم شعر حافظ را پیدا کنم.\n"
     chat_id = context.job.data['CHAT_ID']
     await context.bot.send_message(chat_id=chat_id, text=msg)
 
