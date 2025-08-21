@@ -19,8 +19,13 @@ def fetch_daily_forecast(city: str) -> str:
         return f"شهر {city} پیدا نشد ❌"
 
     url = f"https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lon}&exclude=minutely,hourly,alerts&units=metric&lang=fa&appid={OPENWEATHER_API_KEY}"
-    r = requests.get(url, timeout=10)
-    data = r.json()
+    try:
+        r = requests.get(url, timeout=10)
+        data = r.json()
+    except Exception as e:
+        print(f"Error fetching weather: {e}")
+        return "مشکل در گرفتن پیش‌بینی"
+    print(data)
     daily = data.get("daily", [])
     if not daily:
         return "مشکل در گرفتن پیش‌بینی"
