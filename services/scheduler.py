@@ -17,10 +17,10 @@ async def morning_message(context: ContextTypes.DEFAULT_TYPE):
     chat_id = context.job.kwargs['CHAT_ID']
     await context.bot.send_message(chat_id=chat_id, text=msg)
 
-def setup_jobs(app, CHAT_ID):
+def setup_jobs(app):
     app.job_queue.run_daily(
         morning_message,
-        time=time(6, 30),  # حدود 9 صبح تهران (UTC)
+        time=time(6, 30),
         name="morning",
         kwargs={'CHAT_ID': CHAT_ID}
     )
